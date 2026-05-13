@@ -90,19 +90,39 @@ echo
 # real fails because the user clearly intended that CLI to work.
 echo "AI CLIs (at least one must work):"
 AI_HEALTHY=0
+# probe_optional does its own probing inline rather than calling probe(), so
+# the printed line matches the actual classification — "missing CLI" prints
+# yellow (warn) instead of red (fail), avoiding the contradiction where the
+# user saw a red ✗ but the script still exited 0.
 probe_optional() {
     local name="$1"
     local hint="$2"
-    local before_fail=$FAIL
 
-    probe "$name" "$hint" && { AI_HEALTHY=$((AI_HEALTHY+1)); return 0; } || true
-
-    # If the only reason probe failed was "not in PATH" (missing, not broken),
-    # downgrade the fail to a warning — single-CLI setups are valid.
-    if ! command -v "$name" >/dev/null 2>&1 && [ $FAIL -gt $before_fail ]; then
-        FAIL=$((FAIL-1))
-        WARN=$((WARN+1))
+    if ! command -v "$name" >/dev/null 2>&1; then
+        warn "$name CLI not found in PATH (optional)"
+        hint "install: $hint"
+        return 1
     fi
+
+    local out
+    out=$("$name" --version 2>&1) || {
+        # Broken install — keep this as a hard fail. The user clearly meant
+        # to have this CLI work, and a broken install is a problem to fix.
+        if echo "$out" | grep -qE "ENOENT.*codex.*vendor|spawn.*codex.*ENOENT"; then
+            fail "$name CLI installed but vendor binary missing"
+            hint "fix: npm uninstall -g @openai/codex && npm install -g @openai/codex"
+        else
+            fail "$name --version failed: $(echo "$out" | head -1)"
+            hint "try reinstalling, or override AI_COLLAB_$(echo "$name" | tr '[:lower:]' '[:upper:]')_CMD"
+        fi
+        return 1
+    }
+
+    local version
+    version=$(echo "$out" | head -1)
+    ok "$name CLI works: $version"
+    AI_HEALTHY=$((AI_HEALTHY+1))
+    return 0
 }
 
 probe_optional claude  "https://docs.claude.com/claude-code"

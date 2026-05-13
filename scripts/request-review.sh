@@ -50,7 +50,11 @@ PROMPT="$(cat "$TEMPLATE")
 $(cat "$PACKET")"
 
 CLAUDE_CMD="${AI_COLLAB_CLAUDE_CMD:-claude -p}"
-CODEX_CMD="${AI_COLLAB_CODEX_CMD:-codex exec}"
+# codex default uses `exec review` with --ignore-user-config so it does not
+# try to bootstrap MCP servers (which auth-fail in non-interactive contexts
+# and previously hung dispatches for 10+ minutes). --ephemeral skips session
+# persistence we do not need for one-shot reviews.
+CODEX_CMD="${AI_COLLAB_CODEX_CMD:-codex exec review --ignore-user-config --ephemeral --skip-git-repo-check}"
 GEMINI_CMD="${AI_COLLAB_GEMINI_CMD:-gemini -p}"
 
 # probe_cli <full-cmd> <install-hint>
@@ -67,6 +71,16 @@ probe_cli() {
     local full_cmd="$1"
     local hint="$2"
     local name="${full_cmd%% *}"  # first word — handles "codex exec" → "codex"
+
+    # Wrapped commands like "env PATH=... codex exec" or "timeout 60 codex exec"
+    # would have the wrapper extracted as $name, which is not the binary we
+    # actually want to probe. Skip the probe in that case — the user clearly
+    # knows what they're doing and can use AI_COLLAB_SKIP_PROBE=1 anyway.
+    case "$name" in
+        env|nice|nohup|timeout|sudo|stdbuf|ionice|chrt|setsid)
+            return 0
+            ;;
+    esac
 
     if ! command -v "$name" >/dev/null 2>&1; then
         cat <<EOF >&2
@@ -123,8 +137,18 @@ case "$TARGET" in
         ;;
     codex)
         probe_cli "$CODEX_CMD" "npm install -g @openai/codex"
+        # codex exec / exec review print a human-readable session log to
+        # stdout in addition to the final agent message. Use -o to capture
+        # the clean final message and discard the session noise, so callers
+        # get review-only output (matching how `claude -p` behaves).
+        # If the user overrode AI_COLLAB_CODEX_CMD with something that does
+        # NOT accept -o (e.g., they switched back to plain `codex exec`),
+        # this still works because -o is a valid flag on both subcommands.
+        CODEX_TMP=$(mktemp -t ai-collab-codex.XXXXXX)
+        trap 'rm -f "$CODEX_TMP"' EXIT
         # shellcheck disable=SC2086
-        $CODEX_CMD "$PROMPT"
+        $CODEX_CMD -o "$CODEX_TMP" "$PROMPT" >/dev/null
+        cat "$CODEX_TMP"
         ;;
     gemini)
         probe_cli "$GEMINI_CMD" "npm install -g @google/gemini-cli"
