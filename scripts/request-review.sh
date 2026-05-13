@@ -53,13 +53,20 @@ CLAUDE_CMD="${AI_COLLAB_CLAUDE_CMD:-claude -p}"
 CODEX_CMD="${AI_COLLAB_CODEX_CMD:-codex exec}"
 GEMINI_CMD="${AI_COLLAB_GEMINI_CMD:-gemini -p}"
 
-# probe_cli <name> <install-hint>
-# Runs `<name> --version` and inspects the output. If it errors out in a way
-# that signals a known-broken install (missing vendor binary, ENOENT spawn,
-# etc.), prints a friendly diagnosis and exits non-zero. Otherwise returns 0.
+# probe_cli <full-cmd> <install-hint>
+# Runs `<binary> --version` (where <binary> is the first whitespace-delimited
+# word of <full-cmd>) and inspects the output. The full command is passed so
+# that AI_COLLAB_<NAME>_CMD overrides are honored — e.g., if the user points
+# the codex target at a different binary because the global one is broken,
+# the probe checks that overridden binary, not hardcoded `codex`.
+#
+# If the probe errors out in a way that signals a known-broken install
+# (missing vendor binary, ENOENT spawn, etc.), prints a friendly diagnosis
+# and exits non-zero. Otherwise returns 0.
 probe_cli() {
-    local name="$1"
+    local full_cmd="$1"
     local hint="$2"
+    local name="${full_cmd%% *}"  # first word — handles "codex exec" → "codex"
 
     if ! command -v "$name" >/dev/null 2>&1; then
         cat <<EOF >&2
@@ -88,7 +95,8 @@ skips the optional native dependency). Fix:
 
   npm uninstall -g @openai/codex && npm install -g @openai/codex
 
-Then re-run this command.
+Then re-run this command. Or, if you have a working codex binary elsewhere,
+override with: AI_COLLAB_CODEX_CMD="/path/to/working/codex exec"
 EOF
             exit 3
         fi
@@ -98,8 +106,9 @@ Error: '$name --version' failed:
 
 $probe_out
 
-The CLI is on your PATH but appears broken. Try reinstalling, or override
-the invocation via AI_COLLAB_$(echo "$name" | tr '[:lower:]' '[:upper:]')_CMD.
+The CLI is on your PATH but appears broken. Try reinstalling, or point at
+a working binary via AI_COLLAB_$(echo "$name" | tr '[:lower:]' '[:upper:]')_CMD,
+or skip this check with AI_COLLAB_SKIP_PROBE=1.
 EOF
         exit 4
     }
@@ -108,17 +117,17 @@ EOF
 
 case "$TARGET" in
     claude)
-        probe_cli claude "https://docs.claude.com/claude-code"
+        probe_cli "$CLAUDE_CMD" "https://docs.claude.com/claude-code"
         # shellcheck disable=SC2086
         $CLAUDE_CMD "$PROMPT"
         ;;
     codex)
-        probe_cli codex "npm install -g @openai/codex"
+        probe_cli "$CODEX_CMD" "npm install -g @openai/codex"
         # shellcheck disable=SC2086
         $CODEX_CMD "$PROMPT"
         ;;
     gemini)
-        probe_cli gemini "npm install -g @google/gemini-cli"
+        probe_cli "$GEMINI_CMD" "npm install -g @google/gemini-cli"
         # shellcheck disable=SC2086
         $GEMINI_CMD "$PROMPT"
         ;;

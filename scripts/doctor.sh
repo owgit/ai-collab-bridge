@@ -85,11 +85,33 @@ for tool in bash git; do
 done
 echo
 
-# AI CLIs
-echo "AI CLIs (at least one should be installed):"
-probe claude  "https://docs.claude.com/claude-code"  || true
-probe codex   "npm install -g @openai/codex"          || true
-probe gemini  "npm install -g @google/gemini-cli"     || true
+# AI CLIs — only one is strictly required. Missing CLIs become warnings
+# unless *all* are missing; broken installs (installed-but-failing) stay as
+# real fails because the user clearly intended that CLI to work.
+echo "AI CLIs (at least one must work):"
+AI_HEALTHY=0
+probe_optional() {
+    local name="$1"
+    local hint="$2"
+    local before_fail=$FAIL
+
+    probe "$name" "$hint" && { AI_HEALTHY=$((AI_HEALTHY+1)); return 0; } || true
+
+    # If the only reason probe failed was "not in PATH" (missing, not broken),
+    # downgrade the fail to a warning — single-CLI setups are valid.
+    if ! command -v "$name" >/dev/null 2>&1 && [ $FAIL -gt $before_fail ]; then
+        FAIL=$((FAIL-1))
+        WARN=$((WARN+1))
+    fi
+}
+
+probe_optional claude  "https://docs.claude.com/claude-code"
+probe_optional codex   "npm install -g @openai/codex"
+probe_optional gemini  "npm install -g @google/gemini-cli"
+
+if [ "$AI_HEALTHY" -eq 0 ]; then
+    fail "no working AI CLI found — at least one of claude/codex/gemini is required"
+fi
 echo
 
 # Git context (informational, not a fail condition)
