@@ -11,6 +11,14 @@ We don't have to inherit them.*
 ![license](https://img.shields.io/badge/license-MIT-111?style=flat-square)
 ![works with](https://img.shields.io/badge/works%20with-Claude%20%C2%B7%20Codex%20%C2%B7%20Gemini-111?style=flat-square)
 
+<sub>
+<a href="https://uygarduzgun.com">site</a>&nbsp;·&nbsp;
+<a href="https://github.com/owgit">github</a>&nbsp;·&nbsp;
+<a href="https://x.com/uygarofficial">x</a>&nbsp;·&nbsp;
+<a href="https://www.linkedin.com/in/uygar-duzgun-b6b472165/">linkedin</a>&nbsp;·&nbsp;
+<a href="https://www.buymeacoffee.com/uygarduzgun">buy me a coffee</a>
+</sub>
+
 </div>
 
 ---
@@ -194,6 +202,19 @@ Adding an AI: one `case` line in `scripts/request-review.sh`, optionally a role 
 
 **Build the bridges first. Let the walls fall on their own.**
 
-[MIT](LICENSE)  ·  v0.1
+<br/>
+
+Made by **[Uygar Duzgun](https://uygarduzgun.com)** &nbsp;·&nbsp; [@uygarofficial](https://x.com/uygarofficial)
+
+<a href="https://www.buymeacoffee.com/uygarduzgun"><img src="https://img.shields.io/badge/buy%20me%20a%20coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=000000" alt="Buy me a coffee" /></a>
+
+<sub>
+<a href="https://uygarduzgun.com">site</a>&nbsp;·&nbsp;
+<a href="https://github.com/owgit">github</a>&nbsp;·&nbsp;
+<a href="https://x.com/uygarofficial">x</a>&nbsp;·&nbsp;
+<a href="https://www.linkedin.com/in/uygar-duzgun-b6b472165/">linkedin</a>
+</sub>
+
+[MIT](LICENSE)&nbsp;·&nbsp;v0.1
 
 </div>
