@@ -190,11 +190,32 @@ ai-collab-bridge/
 
 ---
 
+## Troubleshooting
+
+Run the built-in doctor first — it catches most setup issues in one pass:
+
+```bash
+~/skills/ai-collab-bridge/scripts/doctor.sh
+```
+
+| Symptom                                                                                   | Cause                                                                       | Fix                                                                                              |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `spawn .../codex-darwin-arm64/vendor/.../codex ENOENT`                                    | `@openai/codex` npm package skipped its native optional dependency          | `npm uninstall -g @openai/codex && npm install -g @openai/codex`                                 |
+| `<cli> CLI not found in PATH`                                                             | CLI isn't installed or shell can't see it                                   | Install it; if just installed, restart your shell so PATH refreshes                              |
+| Codex prints `ERROR rmcp::transport::worker: ... AuthRequired`                            | Optional Codex MCP servers (Cloudflare, GitHub) require their own auth     | Harmless — those are codex-side MCP integrations, the review itself still completes              |
+| `request-review.sh` hangs forever                                                         | The target CLI is in interactive mode and waiting on TTY                    | Override the invocation: `AI_COLLAB_CODEX_CMD="codex exec" ./scripts/request-review.sh codex …` |
+| Want to skip the pre-flight `--version` probe                                             | You know what you're doing                                                  | `AI_COLLAB_SKIP_PROBE=1 ./scripts/request-review.sh …`                                          |
+| `stage-packet.sh` says the diff is empty                                                  | You're not in a git repo, or the base ref has no diff against HEAD          | Run from your project root; pass an explicit base ref: `stage-packet.sh origin/main`             |
+
+The doctor script returns a non-zero exit code equal to the number of failed checks, so you can wire it into CI or a pre-flight hook.
+
+---
+
 ## Contributing
 
 PRs welcome. The protocol is meant to be additive — more AIs, more strengths, more bridges. Not gatekeeping.
 
-Adding an AI: one `case` line in `scripts/request-review.sh`, optionally a role file under `references/`. That's it.
+Adding an AI: one `case` line in `scripts/request-review.sh` (plus a matching `probe` in `scripts/doctor.sh`), optionally a role file under `references/`. That's it.
 
 ---
 

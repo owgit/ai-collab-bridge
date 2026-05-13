@@ -61,8 +61,9 @@ Each round is independent. The reviewer doesn't carry context across rounds unle
 | `references/role-codex.md` | If you are Codex |
 | `references/role-generic.md` | If you are another AI |
 | `scripts/stage-packet.sh` | Produce a packet from `git diff` |
-| `scripts/request-review.sh` | Send a packet to another AI's CLI |
+| `scripts/request-review.sh` | Send a packet to another AI's CLI (with pre-flight health check) |
 | `scripts/detect-role.sh` | Best-effort role detection |
+| `scripts/doctor.sh` | Diagnose the environment — verifies skill files, required tools, and each AI CLI |
 | `templates/review-request.md` | The prompt wrapped around a packet when sent to the reviewer |
 | `templates/review-response.md` | The format the reviewer must respond in |
 | `examples/example-packet.md` | A worked example packet |
@@ -83,3 +84,7 @@ For the long form, see `references/philosophy.md`.
 - The protocol does not enforce honesty. It depends on each side being truthful about what they checked. In good-faith use it works; abuse degrades it to noise.
 - CLI invocations are best-effort. Different versions of `claude`, `codex`, and other CLIs may need flag adjustments — override the commands with `AI_COLLAB_CLAUDE_CMD`, `AI_COLLAB_CODEX_CMD`, `AI_COLLAB_GEMINI_CMD`.
 - This is v0.1. Issues and PRs welcome.
+
+## When things go sideways
+
+Run `scripts/doctor.sh` first. It checks skill files, required tooling, and each AI CLI's `--version` — including the `@openai/codex` vendor-binary ENOENT pattern that `request-review.sh` also detects on dispatch. Most setup problems surface there in one pass. See the README's Troubleshooting section for the full table.
