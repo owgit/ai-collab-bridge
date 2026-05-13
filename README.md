@@ -51,11 +51,19 @@ See [the manifesto](references/philosophy.md).
 
 ---
 
+## For AI agents reading this
+
+If you are an AI agent (Claude, Codex, Gemini, other) and the user asked you to install or use this skill, jump to [`AGENTS.md`](AGENTS.md) (Codex convention) or [`CLAUDE.md`](CLAUDE.md) (Claude Code convention). Both contain the same content and are kept in sync — each ecosystem reads its own conventional file from the repo root.
+
+Short version: clone into `~/.claude/skills/ai-collab-bridge`, run `scripts/doctor.sh`, then either invoke this skill as a reviewer (read `references/role-<your-name>.md` first) or as an implementer (use `scripts/stage-packet.sh` + `scripts/request-review.sh`). Verdicts are exactly three — `APPROVE`, `CONCERNS`, `BLOCK` — and every finding needs a `file:line` reference. The `What I did NOT check` section is required, not optional.
+
+---
+
 ## Install
 
 ```bash
-git clone https://github.com/<you>/ai-collab-bridge ~/skills/ai-collab-bridge
-chmod +x ~/skills/ai-collab-bridge/scripts/*.sh
+git clone https://github.com/owgit/ai-collab-bridge ~/.claude/skills/ai-collab-bridge
+chmod +x ~/.claude/skills/ai-collab-bridge/scripts/*.sh
 ```
 
 That's it. The skill is self-contained — no dependencies beyond `bash`, `git`, and the CLI of whichever AI you want to talk to.
