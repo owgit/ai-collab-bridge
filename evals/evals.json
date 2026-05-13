@@ -1,0 +1,51 @@
+{
+  "skill_name": "ai-collab-bridge",
+  "evals": [
+    {
+      "id": 0,
+      "name": "reviewer-role",
+      "prompt": "Hi! Codex just handed off some work to me. Here's the packet they sent — can you review it properly and reply in the proper review format?\n\n# Review packet\n\n## Summary\nAdd a JWT auth middleware in src/auth/middleware.ts that validates Bearer tokens against the user table and attaches req.user for downstream handlers.\n\n## Specific focus questions\n- Does the rate-limit handling do anything if the user is anonymous?\n- Is token expiry checked correctly in all paths?\n- Any obvious injection risk in how we look up the user?\n\n## Changed files\n```\n src/auth/middleware.ts        | 58 +++\n src/auth/index.ts             |  3 +\n tests/auth/middleware.test.ts | 41 +++\n```\n\n## Diff\n```diff\ndiff --git a/src/auth/middleware.ts b/src/auth/middleware.ts\nnew file mode 100644\n--- /dev/null\n+++ b/src/auth/middleware.ts\n@@ -0,0 +1,58 @@\n+import { Request, Response, NextFunction } from 'express';\n+import jwt from 'jsonwebtoken';\n+import { db } from '../db';\n+\n+export async function requireAuth(req: Request, res: Response, next: NextFunction) {\n+  const header = req.headers.authorization;\n+  if (!header || !header.startsWith('Bearer ')) {\n+    return res.status(401).json({ error: 'missing token' });\n+  }\n+  const token = header.slice(7);\n+  try {\n+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub: string };\n+    const user = await db.query(`SELECT * FROM users WHERE id = '${payload.sub}'`);\n+    if (!user) return res.status(401).json({ error: 'invalid token' });\n+    (req as any).user = user;\n+    next();\n+  } catch (e) {\n+    return res.status(401).json({ error: 'invalid token' });\n+  }\n+}\n```",
+      "expected_output": "A markdown review response following the review-response.md template: verdict (APPROVE/CONCERNS/BLOCK), reason, structured findings with file:line refs (must catch SQL injection on line 14 and truthy-array bug), 'What I checked' and 'What I did NOT check' sections.",
+      "assertions": [
+        {"text": "Response includes a 'Verdict' section with one of APPROVE, CONCERNS, or BLOCK"},
+        {"text": "Response identifies the SQL injection where payload.sub is interpolated into the query string"},
+        {"text": "Response identifies the truthy-array bug (db.query returns an array; 'if (!user)' is always falsy)"},
+        {"text": "Response uses file:line reference format for at least one finding (e.g., 'src/auth/middleware.ts:14')"},
+        {"text": "Response includes a 'What I checked' or equivalent section listing inspected scope"},
+        {"text": "Response includes a 'What I did NOT check' or equivalent honest-scope-limits section"},
+        {"text": "Response addresses the injection-risk focus question (one of the three the implementer raised)"}
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "implementer-handoff",
+      "prompt": "Ok I just finished adding rate limiting middleware to our Express API — it's in src/middleware/ratelimit.ts, about 80 lines, uses a Redis-backed sliding window approach. Before I merge this I want Codex to take a look because the failure modes around Redis are tricky.\n\nSpecifically I want them to focus on: (1) what happens if the Redis connection drops mid-request, (2) whether we handle clock-skew between the API node and the Redis node correctly, and (3) whether the bucket key derivation is correct for authenticated users vs anonymous IPs.\n\nCan you set up a proper handoff so I can ship the packet to Codex via CLI? Walk me through the commands. I have the diff staged in git against main.",
+      "expected_output": "A walk-through showing: (1) staging a packet with SUMMARY and QUESTIONS env vars, the user's specific focus areas embedded in QUESTIONS, against the 'main' base ref; (2) the request-review.sh codex /tmp/packet.md invocation; (3) maybe a description of the verdict/response handling. Should not fabricate the file content the user didn't provide.",
+      "assertions": [
+        {"text": "Response references the stage-packet.sh script (or describes its function clearly)"},
+        {"text": "Response references the request-review.sh script targeting 'codex' (or describes invoking codex CLI directly)"},
+        {"text": "Response uses 'main' as the base ref for the diff, as the user specified"},
+        {"text": "Response embeds the three focus questions (Redis drop, clock skew, bucket key) into the packet/QUESTIONS, not just summarized away"},
+        {"text": "Response does NOT fabricate the contents of src/middleware/ratelimit.ts (the user didn't share the code)"},
+        {"text": "Response mentions the verdict tiers (APPROVE/CONCERNS/BLOCK) or the response-handling flow"}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "bridge-onboarding",
+      "prompt": "Hey — me and a collaborator are using two AIs on our codebase. Sometimes I drive Claude, sometimes she drives Codex. We keep stepping on each other's toes because neither AI has visibility into what the other did. I want to set up a proper review handoff between them — like, when Codex finishes implementing something, Claude should review it before we merge. And vice versa.\n\nWhat's the cleanest way to do this? Walk me through the actual setup — installation, the first review, what a normal day looks like.",
+      "expected_output": "A clear walk-through covering: (1) the AI Collab Bridge concept, (2) installation (git clone into ~/.claude/skills/ or similar), (3) the two roles (reviewer / implementer) and that the protocol is bidirectional, (4) the verdicts APPROVE/CONCERNS/BLOCK, (5) a typical daily flow showing stage-packet.sh and request-review.sh being used.",
+      "assertions": [
+        {"text": "Response names the AI Collab Bridge by name (or its purpose) as the proposed solution"},
+        {"text": "Response describes installation via git clone (to ~/.claude/skills/ or a similar path)"},
+        {"text": "Response explains BOTH roles (reviewer AND implementer) and that the protocol is bidirectional"},
+        {"text": "Response mentions all three verdicts: APPROVE, CONCERNS, BLOCK"},
+        {"text": "Response shows stage-packet.sh used in the daily-flow example"},
+        {"text": "Response shows request-review.sh used in the daily-flow example"}
+      ],
+      "files": []
+    }
+  ]
+}
