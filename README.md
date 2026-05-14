@@ -61,12 +61,32 @@ Short version: clone into `~/.claude/skills/ai-collab-bridge`, run `scripts/doct
 
 ## Install
 
+Two commands. The installer wires the skill into every AI CLI it can find on your machine (Claude Code, Codex, Gemini).
+
+```bash
+git clone https://github.com/owgit/ai-collab-bridge ~/.claude/skills/ai-collab-bridge
+~/.claude/skills/ai-collab-bridge/install.sh
+```
+
+What `install.sh` does — all steps are idempotent so it is safe to re-run:
+
+1. `chmod +x` every script.
+2. **Claude Code:** symlinks the skill into `~/.claude/skills/` so it auto-discovers on next session.
+3. **Codex CLI:** appends an `ai-collab-bridge` section to `~/.codex/AGENTS.md` and installs the named subagent at `~/.codex/agents/ai-collab-bridge.toml` so Codex sees it in every session.
+4. **Gemini CLI:** detected and called via `gemini -p` at runtime; no global-config hook yet (Gemini has no single canonical instructions file at time of writing).
+5. Runs `scripts/doctor.sh` for final verification.
+
+The skill itself has no dependencies beyond `bash`, `git`, and the CLI of whichever AI you want to talk to. The installer just teaches each AI where to find it.
+
+### Manual install (if you prefer)
+
 ```bash
 git clone https://github.com/owgit/ai-collab-bridge ~/.claude/skills/ai-collab-bridge
 chmod +x ~/.claude/skills/ai-collab-bridge/scripts/*.sh
+~/.claude/skills/ai-collab-bridge/scripts/doctor.sh
 ```
 
-That's it. The skill is self-contained — no dependencies beyond `bash`, `git`, and the CLI of whichever AI you want to talk to.
+This works for Claude Code (auto-discovery handles it). For Codex CLI to also know about the bridge, manually append the snippet in [`codex/ai-collab-bridge.toml`](codex/ai-collab-bridge.toml) to `~/.codex/agents/` and add a pointer to `~/.codex/AGENTS.md`.
 
 ---
 

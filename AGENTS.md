@@ -8,17 +8,22 @@ A small, opinionated protocol for AI models to review each other's code via CLI 
 
 ## If you are being asked to install this for the user
 
-Run:
+Two commands. The installer wires the skill into every AI CLI it can find on the user's machine (Claude Code, Codex CLI, Gemini CLI):
 
 ```bash
 git clone https://github.com/owgit/ai-collab-bridge ~/.claude/skills/ai-collab-bridge
-chmod +x ~/.claude/skills/ai-collab-bridge/scripts/*.sh
-~/.claude/skills/ai-collab-bridge/scripts/doctor.sh
+~/.claude/skills/ai-collab-bridge/install.sh
 ```
 
-The doctor will tell you what passes, what is missing, and what is broken. Exit code is the number of failed checks.
+`install.sh` is idempotent and safe to re-run. It will:
 
-The user must then start a new Claude Code session for the skill to be discovered, OR (if they were using Codex) the protocol is now ready to be invoked manually from any CLI.
+1. `chmod +x` every script.
+2. Symlink the skill into `~/.claude/skills/` for Claude Code auto-discovery (if `claude` is on PATH).
+3. Append an `ai-collab-bridge` section to `~/.codex/AGENTS.md` and copy the subagent toml to `~/.codex/agents/ai-collab-bridge.toml` so Codex sees the bridge in every session (if `codex` is on PATH).
+4. Detect `gemini` on PATH and note that runtime dispatch works without further config.
+5. Run `scripts/doctor.sh` for final verification.
+
+After the installer finishes, tell the user to start a NEW Claude Code or Codex session — the existing one was bootstrapped before the wiring was in place. The verification doctor returns exit code = number of failed checks, so you can branch on its status before reporting success.
 
 ## If you are being invoked AS the reviewer through this bridge
 

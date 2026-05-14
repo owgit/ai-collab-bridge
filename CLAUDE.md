@@ -12,17 +12,22 @@ The whole spec lives in `references/handoff-protocol.md`. The philosophy lives i
 
 ## If you are being asked to install this for the user
 
-Run:
+Two commands. The installer wires the skill into every AI CLI it can find on the user's machine — Claude Code, Codex CLI, Gemini CLI:
 
 ```bash
 git clone https://github.com/owgit/ai-collab-bridge ~/.claude/skills/ai-collab-bridge
-chmod +x ~/.claude/skills/ai-collab-bridge/scripts/*.sh
-~/.claude/skills/ai-collab-bridge/scripts/doctor.sh
+~/.claude/skills/ai-collab-bridge/install.sh
 ```
 
-The doctor diagnoses skill files, required tools, and each AI CLI. Exit code = number of failed checks.
+`install.sh` is idempotent and safe to re-run. It will:
 
-Tell the user to start a new Claude Code session for skill auto-discovery to pick this up. Their existing session was bootstrapped before the symlink existed.
+1. `chmod +x` every script.
+2. Symlink the skill into `~/.claude/skills/` for Claude Code auto-discovery.
+3. Append an `ai-collab-bridge` section to `~/.codex/AGENTS.md` and copy the named subagent to `~/.codex/agents/ai-collab-bridge.toml` so Codex sees the bridge in every session (only if `codex` is on PATH).
+4. Detect `gemini` on PATH and note that runtime dispatch works without further config.
+5. Run `scripts/doctor.sh` for final verification. Exit code = number of failed checks.
+
+After install, tell the user to start a new Claude Code session — the skill auto-discovers on session start, but their current session was bootstrapped before the symlink existed.
 
 ## If you are being invoked AS the reviewer through this bridge
 
