@@ -4,13 +4,16 @@
 # Usage:
 #   ./request-review.sh <target> <packet-path>
 #
-# Targets supported out of the box: claude, codex, gemini
+# Targets supported out of the box: claude, codex, gemini, hermes
 # Add new ones by editing the case block below.
 #
 # Override CLI commands with env vars:
 #   AI_COLLAB_CLAUDE_CMD   (default: "claude -p")
 #   AI_COLLAB_CODEX_CMD    (default: "codex exec")
 #   AI_COLLAB_GEMINI_CMD   (default: "gemini -p")
+#   AI_COLLAB_HERMES_CMD   (default: "hermes chat -Q --source ai-collab-bridge -q")
+#   AI_COLLAB_HERMES_SSH_HOST
+#     Optional SSH host that runs Hermes remotely. Example: "pi".
 #
 # Pre-flight: this script runs <cli> --version before dispatch and surfaces
 # helpful errors for known broken-install patterns (e.g. @openai/codex's
@@ -24,7 +27,7 @@ PACKET="${2:-}"
 if [ -z "$TARGET" ] || [ -z "$PACKET" ]; then
     cat <<EOF >&2
 Usage: $0 <target> <packet-path>
-  target:       claude | codex | gemini | <custom>
+  target:       claude | codex | gemini | hermes | <custom>
   packet-path:  path to a markdown packet (see stage-packet.sh)
 EOF
     exit 1
@@ -56,6 +59,8 @@ CLAUDE_CMD="${AI_COLLAB_CLAUDE_CMD:-claude -p}"
 # persistence we do not need for one-shot reviews.
 CODEX_CMD="${AI_COLLAB_CODEX_CMD:-codex exec review --ignore-user-config --ephemeral --skip-git-repo-check}"
 GEMINI_CMD="${AI_COLLAB_GEMINI_CMD:-gemini -p}"
+HERMES_CMD="${AI_COLLAB_HERMES_CMD:-hermes chat -Q --source ai-collab-bridge -q}"
+HERMES_SSH_HOST="${AI_COLLAB_HERMES_SSH_HOST:-}"
 
 # probe_cli <full-cmd> <install-hint>
 # Runs `<binary> --version` (where <binary> is the first whitespace-delimited
@@ -77,7 +82,7 @@ probe_cli() {
     # actually want to probe. Skip the probe in that case — the user clearly
     # knows what they're doing and can use AI_COLLAB_SKIP_PROBE=1 anyway.
     case "$name" in
-        env|nice|nohup|timeout|sudo|stdbuf|ionice|chrt|setsid)
+        env|nice|nohup|timeout|sudo|ssh|stdbuf|ionice|chrt|setsid)
             return 0
             ;;
     esac
@@ -155,9 +160,36 @@ case "$TARGET" in
         # shellcheck disable=SC2086
         $GEMINI_CMD "$PROMPT"
         ;;
+    hermes)
+        if [ -n "$HERMES_SSH_HOST" ]; then
+            if ! command -v ssh >/dev/null 2>&1; then
+                echo "Error: 'ssh' CLI not found in PATH." >&2
+                exit 2
+            fi
+            printf '%s' "$PROMPT" | ssh "$HERMES_SSH_HOST" 'python3 -c '"'"'
+import subprocess
+import sys
+
+prompt = sys.stdin.read()
+raise SystemExit(subprocess.call([
+    "hermes",
+    "chat",
+    "-Q",
+    "--source",
+    "ai-collab-bridge",
+    "-q",
+    prompt,
+]))
+'"'"''
+        else
+            probe_cli "$HERMES_CMD" "Install Hermes Agent and ensure 'hermes' is on PATH"
+            # shellcheck disable=SC2086
+            $HERMES_CMD "$PROMPT"
+        fi
+        ;;
     *)
         echo "Error: unknown target '$TARGET'" >&2
-        echo "Supported: claude, codex, gemini" >&2
+        echo "Supported: claude, codex, gemini, hermes" >&2
         echo "To add another, edit this script and append a case." >&2
         exit 5
         ;;

@@ -9,7 +9,7 @@ We don't have to inherit them.*
 
 ![version](https://img.shields.io/badge/version-0.1-111?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-111?style=flat-square)
-![works with](https://img.shields.io/badge/works%20with-Claude%20%C2%B7%20Codex%20%C2%B7%20Gemini-111?style=flat-square)
+![works with](https://img.shields.io/badge/works%20with-Claude%20%C2%B7%20Codex%20%C2%B7%20Gemini%20%C2%B7%20Hermes-111?style=flat-square)
 
 <sub>
 <a href="https://uygarduzgun.com">site</a>&nbsp;·&nbsp;
@@ -76,7 +76,7 @@ What `install.sh` does — all steps are idempotent so it is safe to re-run:
 4. **Gemini CLI:** detected and called via `gemini -p` at runtime; no global-config hook yet (Gemini has no single canonical instructions file at time of writing).
 5. Runs `scripts/doctor.sh` for final verification.
 
-The skill itself has no dependencies beyond `bash`, `git`, and the CLI of whichever AI you want to talk to. The installer just teaches each AI where to find it.
+The skill itself has no dependencies beyond `bash`, `git`, and the CLI of whichever AI you want to talk to. Remote Hermes handoffs additionally require `ssh`. The installer just teaches each AI where to find it.
 
 ### Manual install (if you prefer)
 
@@ -168,6 +168,14 @@ Reproduce with the eval pack under `evals/`.
 | Claude   | `claude -p "<prompt>"`     | `AI_COLLAB_CLAUDE_CMD`       |
 | Codex    | `codex exec "<prompt>"`    | `AI_COLLAB_CODEX_CMD`        |
 | Gemini   | `gemini -p "<prompt>"`     | `AI_COLLAB_GEMINI_CMD`       |
+| Hermes   | `hermes chat -Q --source ai-collab-bridge -q "<prompt>"` | `AI_COLLAB_HERMES_CMD` |
+
+Hermes can also run on another machine reachable over SSH:
+
+```bash
+AI_COLLAB_HERMES_SSH_HOST=pi \
+  ~/skills/ai-collab-bridge/scripts/request-review.sh hermes /tmp/packet.md
+```
 
 Adding another AI: edit [`scripts/request-review.sh`](scripts/request-review.sh), add one `case` line, open a PR.
 
