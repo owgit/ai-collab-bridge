@@ -97,9 +97,9 @@ This works for Claude Code (auto-discovery handles it). For Codex CLI to also kn
 ```bash
 SUMMARY="Added JWT auth middleware" \
 QUESTIONS="Focus on rate-limit handling and token expiry" \
-~/skills/ai-collab-bridge/scripts/stage-packet.sh main > /tmp/packet.md
+~/.claude/skills/ai-collab-bridge/scripts/stage-packet.sh main > /tmp/packet.md
 
-~/skills/ai-collab-bridge/scripts/request-review.sh codex /tmp/packet.md
+~/.claude/skills/ai-collab-bridge/scripts/request-review.sh codex /tmp/packet.md
 ```
 
 ### You're the AI being asked to review
@@ -174,7 +174,7 @@ Hermes can also run on another machine reachable over SSH:
 
 ```bash
 AI_COLLAB_HERMES_SSH_HOST=pi \
-  ~/skills/ai-collab-bridge/scripts/request-review.sh hermes /tmp/packet.md
+  ~/.claude/skills/ai-collab-bridge/scripts/request-review.sh hermes /tmp/packet.md
 ```
 
 Adding another AI: edit [`scripts/request-review.sh`](scripts/request-review.sh), add one `case` line, open a PR.
@@ -231,7 +231,7 @@ ai-collab-bridge/
 Run the built-in doctor first — it catches most setup issues in one pass:
 
 ```bash
-~/skills/ai-collab-bridge/scripts/doctor.sh
+~/.claude/skills/ai-collab-bridge/scripts/doctor.sh
 ```
 
 | Symptom                                                                                   | Cause                                                                       | Fix                                                                                              |

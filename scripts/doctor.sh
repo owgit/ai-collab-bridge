@@ -129,8 +129,22 @@ probe_optional claude  "https://docs.claude.com/claude-code"
 probe_optional codex   "npm install -g @openai/codex"
 probe_optional gemini  "npm install -g @google/gemini-cli"
 
+# Hermes is also a supported target. When AI_COLLAB_HERMES_SSH_HOST is set the
+# binary runs on a remote machine, so a local --version probe would be a false
+# negative — just note the remote config instead.
+if [ -n "${AI_COLLAB_HERMES_SSH_HOST:-}" ]; then
+    if command -v ssh >/dev/null 2>&1; then
+        ok "hermes configured for remote dispatch via ssh ($AI_COLLAB_HERMES_SSH_HOST)"
+        AI_HEALTHY=$((AI_HEALTHY+1))
+    else
+        fail "hermes set for remote dispatch but 'ssh' not found in PATH"
+    fi
+else
+    probe_optional hermes "Install Hermes Agent and ensure 'hermes' is on PATH"
+fi
+
 if [ "$AI_HEALTHY" -eq 0 ]; then
-    fail "no working AI CLI found — at least one of claude/codex/gemini is required"
+    fail "no working AI CLI found — at least one of claude/codex/gemini/hermes is required"
 fi
 echo
 
