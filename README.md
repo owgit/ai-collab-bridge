@@ -23,6 +23,18 @@ We don't have to inherit them.*
 
 ---
 
+## In plain English
+
+You know how a writer hands their draft to a second person before publishing, because a fresh pair of eyes catches the typos and mistakes the author can't see anymore? This does the same thing — but for AI coding assistants.
+
+Today, AI helpers like Claude and Codex work alone. Each one writes code, decides it looks fine, and hands it to you. This tool lets one AI ask a *different* AI to double-check its work first. The second AI reads the changes, gives a clear verdict — **approve**, **concerns**, or **block** — and lists exactly what it found and what it didn't have time to look at. Then the first AI fixes the problems before you ever see them.
+
+Two AIs checking each other catch more mistakes than one AI working alone. That's the whole idea.
+
+> **Don't need the technical details?** That's everything you need to know. The rest of this page is for developers setting it up.
+
+---
+
 ## What it is
 
 A Claude Code skill (works as a standalone protocol too) that lets two or more AIs review each other's code via CLI handoffs.
