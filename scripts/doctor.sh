@@ -37,13 +37,16 @@ probe() {
 
     local out
     out=$("$name" --version 2>&1) || {
-        if echo "$out" | grep -qE "ENOENT.*codex.*vendor|spawn.*codex.*ENOENT"; then
+        case "$out" in
+        *ENOENT*codex*vendor*|*spawn*codex*ENOENT*)
             fail "$name CLI installed but vendor binary missing"
             hint "fix: npm uninstall -g @openai/codex && npm install -g @openai/codex"
-        else
+            ;;
+        *)
             fail "$name --version failed: $(echo "$out" | head -1)"
             hint "try reinstalling, or override AI_COLLAB_$(echo "$name" | tr '[:lower:]' '[:upper:]')_CMD"
-        fi
+            ;;
+        esac
         return 1
     }
 
@@ -108,13 +111,16 @@ probe_optional() {
     out=$("$name" --version 2>&1) || {
         # Broken install — keep this as a hard fail. The user clearly meant
         # to have this CLI work, and a broken install is a problem to fix.
-        if echo "$out" | grep -qE "ENOENT.*codex.*vendor|spawn.*codex.*ENOENT"; then
+        case "$out" in
+        *ENOENT*codex*vendor*|*spawn*codex*ENOENT*)
             fail "$name CLI installed but vendor binary missing"
             hint "fix: npm uninstall -g @openai/codex && npm install -g @openai/codex"
-        else
+            ;;
+        *)
             fail "$name --version failed: $(echo "$out" | head -1)"
             hint "try reinstalling, or override AI_COLLAB_$(echo "$name" | tr '[:lower:]' '[:upper:]')_CMD"
-        fi
+            ;;
+        esac
         return 1
     }
 

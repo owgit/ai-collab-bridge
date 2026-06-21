@@ -82,7 +82,7 @@ For the long form, see `references/philosophy.md`.
 ## Limits and caveats
 
 - The protocol does not enforce honesty. It depends on each side being truthful about what they checked. In good-faith use it works; abuse degrades it to noise.
-- CLI invocations are best-effort. Different versions of `claude`, `codex`, and other CLIs may need flag adjustments — override the commands with `AI_COLLAB_CLAUDE_CMD`, `AI_COLLAB_CODEX_CMD`, `AI_COLLAB_GEMINI_CMD`.
+- CLI invocations are best-effort. Different versions of `claude`, `codex`, and other CLIs may need flag adjustments — override the commands with `AI_COLLAB_CLAUDE_CMD`, `AI_COLLAB_CODEX_CMD`, `AI_COLLAB_GEMINI_CMD`. The default Claude command isolates review dispatch from user/project MCP servers with an empty MCP config; keep equivalent flags in custom overrides unless the review needs those tools.
 - This is v0.1. Issues and PRs welcome.
 
 ## When things go sideways

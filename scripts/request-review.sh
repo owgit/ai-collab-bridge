@@ -8,7 +8,7 @@
 # Add new ones by editing the case block below.
 #
 # Override CLI commands with env vars:
-#   AI_COLLAB_CLAUDE_CMD   (default: "claude -p")
+#   AI_COLLAB_CLAUDE_CMD   (default: "claude -p --strict-mcp-config --mcp-config {\"mcpServers\":{}} --no-session-persistence")
 #   AI_COLLAB_CODEX_CMD    (default: "codex exec")
 #   AI_COLLAB_GEMINI_CMD   (default: "gemini -p")
 #   AI_COLLAB_HERMES_CMD   (default: "hermes chat -Q --source ai-collab-bridge -q")
@@ -52,7 +52,16 @@ PROMPT="$(cat "$TEMPLATE")
 
 $(cat "$PACKET")"
 
-CLAUDE_CMD="${AI_COLLAB_CLAUDE_CMD:-claude -p}"
+EMPTY_MCP_CONFIG_JSON='{"mcpServers":{}}'
+CLAUDE_PROBE_CMD="${AI_COLLAB_CLAUDE_CMD:-claude -p}"
+CLAUDE_DEFAULT_CMD=(
+    claude
+    -p
+    --strict-mcp-config
+    --mcp-config
+    "$EMPTY_MCP_CONFIG_JSON"
+    --no-session-persistence
+)
 # codex default uses `exec review` with --ignore-user-config so it does not
 # try to bootstrap MCP servers (which auth-fail in non-interactive contexts
 # and previously hung dispatches for 10+ minutes). --ephemeral skips session
@@ -105,7 +114,8 @@ EOF
     probe_out=$("$name" --version 2>&1) || {
         # Detect the @openai/codex vendor-binary ENOENT pattern explicitly —
         # it's confusing because `which codex` succeeds but invoking it fails.
-        if echo "$probe_out" | grep -qE "ENOENT.*codex.*vendor|spawn.*codex.*ENOENT"; then
+        case "$probe_out" in
+        *ENOENT*codex*vendor*|*spawn*codex*ENOENT*)
             cat <<EOF >&2
 Error: '$name' CLI is installed but its platform-specific vendor binary is missing.
 
@@ -118,7 +128,10 @@ Then re-run this command. Or, if you have a working codex binary elsewhere,
 override with: AI_COLLAB_CODEX_CMD="/path/to/working/codex exec"
 EOF
             exit 3
-        fi
+            ;;
+        *)
+            ;;
+        esac
 
         cat <<EOF >&2
 Error: '$name --version' failed:
@@ -134,11 +147,95 @@ EOF
     return 0
 }
 
+looks_like_auth_error() {
+    case "$1" in
+    *"Invalid authentication credentials"*|*"authentication_error"*|*"Failed to authenticate"*)
+        return 0
+        ;;
+    *)
+        return 1
+        ;;
+    esac
+}
+
+auth_failure_hint() {
+    local name="$1"
+
+    case "$name" in
+        claude)
+            # Intentionally expand EMPTY_MCP_CONFIG_JSON so the remediation
+            # command is copy-pasteable in common shells.
+            cat <<EOF >&2
+
+Authentication failed for Claude CLI.
+
+The CLI is installed, but the saved Claude credential was rejected by the
+server. Refresh the official Claude Code session:
+
+  claude auth login --claudeai
+
+Then verify with:
+
+  claude -p --strict-mcp-config --mcp-config '$EMPTY_MCP_CONFIG_JSON' --no-session-persistence "Reply with OK only."
+
+EOF
+            ;;
+        *)
+            cat <<EOF >&2
+
+Authentication failed for '$name'. Refresh that CLI's saved credentials and
+retry the review request.
+
+EOF
+            ;;
+    esac
+}
+
+run_claude_review() {
+    local stdout_file
+    local stderr_file
+    local claude_stdout
+    local claude_stderr
+    local claude_combined
+    local claude_status
+
+    stdout_file=$(mktemp -t ai-collab-claude.stdout.XXXXXX)
+    stderr_file=$(mktemp -t ai-collab-claude.stderr.XXXXXX)
+
+    set +e
+    if [ -n "${AI_COLLAB_CLAUDE_CMD:-}" ]; then
+        # shellcheck disable=SC2086
+        $AI_COLLAB_CLAUDE_CMD "$PROMPT" >"$stdout_file" 2>"$stderr_file"
+    else
+        "${CLAUDE_DEFAULT_CMD[@]}" "$PROMPT" >"$stdout_file" 2>"$stderr_file"
+    fi
+    claude_status=$?
+    set -e
+
+    claude_stdout=$(cat "$stdout_file")
+    claude_stderr=$(cat "$stderr_file")
+    rm -f "$stdout_file" "$stderr_file"
+
+    if [ "$claude_status" -ne 0 ]; then
+        claude_combined="$claude_stderr
+$claude_stdout"
+        if looks_like_auth_error "$claude_combined"; then
+            auth_failure_hint claude
+        fi
+        printf '%s\n' "$claude_combined" >&2
+        exit "$claude_status"
+    fi
+
+    if [ -n "$claude_stderr" ]; then
+        printf '%s\n' "$claude_stderr" >&2
+    fi
+    printf '%s\n' "$claude_stdout"
+}
+
 case "$TARGET" in
     claude)
-        probe_cli "$CLAUDE_CMD" "https://docs.claude.com/claude-code"
-        # shellcheck disable=SC2086
-        $CLAUDE_CMD "$PROMPT"
+        probe_cli "$CLAUDE_PROBE_CMD" "https://docs.claude.com/claude-code"
+        run_claude_review
         ;;
     codex)
         probe_cli "$CODEX_CMD" "npm install -g @openai/codex"

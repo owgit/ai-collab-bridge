@@ -165,7 +165,7 @@ Reproduce with the eval pack under `evals/`.
 
 | AI       | Default invocation         | Env override                 |
 | -------- | -------------------------- | ---------------------------- |
-| Claude   | `claude -p "<prompt>"`     | `AI_COLLAB_CLAUDE_CMD`       |
+| Claude   | isolated `claude -p` with empty MCP config and no session persistence | `AI_COLLAB_CLAUDE_CMD` |
 | Codex    | `codex exec "<prompt>"`    | `AI_COLLAB_CODEX_CMD`        |
 | Gemini   | `gemini -p "<prompt>"`     | `AI_COLLAB_GEMINI_CMD`       |
 | Hermes   | `hermes chat -Q --source ai-collab-bridge -q "<prompt>"` | `AI_COLLAB_HERMES_CMD` |
@@ -241,6 +241,8 @@ Run the built-in doctor first — it catches most setup issues in one pass:
 | Codex review hangs for minutes without responding                                         | Codex tried to bootstrap user-config MCP servers (Cloudflare, GitHub) that need their own auth and stalled out | The default `AI_COLLAB_CODEX_CMD` passes `--ignore-user-config` to skip MCP bootstrap. If you overrode the default, add that flag back |
 | Codex prints `ERROR rmcp::transport::worker: ... AuthRequired`                            | User-config MCP servers failing to authenticate                             | Same as above — make sure `--ignore-user-config` is in your codex invocation                     |
 | `request-review.sh` hangs forever                                                         | The target CLI is in interactive mode and waiting on TTY                    | Use the non-interactive subcommand: codex → `codex exec` or `codex exec review`; claude → `claude -p` |
+| Claude prints `401 Invalid authentication credentials`                                     | Saved Claude Code auth is stale or rejected server-side                     | Run `claude auth login --claudeai`, then verify with `claude -p --strict-mcp-config --mcp-config '{"mcpServers":{}}' --no-session-persistence "Reply with OK only."` |
+| Claude review hangs after auth succeeds                                                    | User/project MCP servers or hooks are slowing session startup               | The default Claude bridge command uses an empty MCP config and no session persistence. If you override `AI_COLLAB_CLAUDE_CMD`, keep equivalent isolation flags unless you intentionally need MCP tools |
 | Want to skip the pre-flight `--version` probe                                             | You know what you're doing                                                  | `AI_COLLAB_SKIP_PROBE=1 ./scripts/request-review.sh …`                                          |
 | Probe rejects an `env`-wrapped or `timeout`-wrapped override                               | Known wrappers (`env`, `nice`, `timeout`, `sudo`, `nohup`, …) cause the probe to skip itself rather than mis-probe the wrapper | This is intentional — the probe defers to you for wrapped commands. Combine with `AI_COLLAB_SKIP_PROBE=1` if you also want to silence other checks |
 | `stage-packet.sh` says the diff is empty                                                  | You're not in a git repo, or the base ref has no diff against HEAD          | Run from your project root; pass an explicit base ref: `stage-packet.sh origin/main`             |
